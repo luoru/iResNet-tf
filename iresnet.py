@@ -1,6 +1,50 @@
 import tensorflow as tf
 import sys
 
+def tf_warp_img(im, disp):
+    b = tf.shape(im)[0]
+    h = tf.shape(im)[1]
+    w = tf.shape(im)[2]
+    c = tf.shape(im)[3]
+
+    disp = tf.squeeze(disp)
+
+    def _warp(i):
+        x, y = tf.meshgrid(tf.range(w), tf.range(h))
+        x_f = tf.to_float(x)
+        x_f -= disp[i]
+        x0_f = tf.floor(x_f)
+        x1_f = x0_f + 1
+
+        w0 = x1_f - x_f
+        w0 = tf.expand_dims(w0, axis=2)
+        w1 = x_f - x0_f
+        w1 = tf.expand_dims(w1, axis=2)
+
+        x_0 = tf.zeros(shape=[h, w], dtype=tf.float32)
+        x_w = tf.ones(shape=[h, w], dtype=tf.float32) * tf.to_float(w - 1)
+        x0_f = tf.where(x0_f < 0, x_0, x0_f)
+        x0_f = tf.where(x0_f > tf.to_float(w - 1), x_w, x0_f)
+        x1_f = tf.where(x1_f < 0, x_0, x1_f)
+        x1_f = tf.where(x1_f > tf.to_float(w - 1), x_w, x1_f)
+
+        x0_f = tf.expand_dims(x0_f, axis=2)
+        x1_f = tf.expand_dims(x1_f, axis=2)
+        y = tf.expand_dims(y, axis=2)
+        indices = tf.concat([y, tf.to_int32(x0_f)], axis=2)
+        indices = tf.reshape(indices, [-1, 2])
+        iml = tf.gather_nd(im[i], indices)
+        indices = tf.concat([y, tf.to_int32(x1_f)], axis=2)
+        indices = tf.reshape(indices, [-1, 2])
+        imr = tf.gather_nd(im[i], indices)
+
+        res = w0 * tf.reshape(iml, [h, w, c]) + w1 * tf.reshape(imr, [h, w, c])
+        return res
+
+    ret = tf.map_fn(_warp, tf.range(b), dtype=tf.float32)
+    ret = tf.reshape(ret, [b, h, w, c])
+    return ret
+
 def correlation_map(x, y, max_disp, name):
     w = tf.shape(y)[2]
     corr_tensors = []
