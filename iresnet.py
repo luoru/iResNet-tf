@@ -161,7 +161,7 @@ class IResNet(object):
 
         with tf.name_scope('multi_scale_full_disparity'):
             up_conv1a = self.deconv2d_relu(conv1a, 32, 4, 2, name='up_conv1ab')
-            up_conv1b = self.deconv2d_relu(conv1a, 32, 4, 2, name='up_conv1ab', reuse=True)
+            up_conv1b = self.deconv2d_relu(conv1b, 32, 4, 2, name='up_conv1ab', reuse=True)
 
             up_conv2a = self.deconv2d_relu(conv2a, 32, 8, 4, name='up_conv2ab')
             up_conv2b = self.deconv2d_relu(conv2b, 32, 8, 4, name='up_conv2ab', reuse=True)
